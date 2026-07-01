@@ -1,0 +1,80 @@
+{
+  "name": "home-nas-lite",
+  "version": "1.0.0",
+  "description": "家庭局域网文件共享与预览工具",
+  "main": "electron/main.js",
+  "author": "家庭 NAS Lite",
+  "license": "UNLICENSED",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "electron .",
+    "test": "node --test --test-concurrency=1 tests/*.test.js",
+    "copy-vendor": "node scripts/copy-vendor-assets.js",
+    "verify": "node scripts/verify-package.js",
+    "predist": "npm run copy-vendor && npm run verify && npm test",
+    "dist": "electron-builder --win nsis --x64"
+  },
+  "dependencies": {
+    "archiver": "^7.0.1",
+    "express": "^4.21.2",
+    "express-session": "^1.18.1",
+    "mammoth": "^1.9.0",
+    "multer": "^2.0.2",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "electron": "^37.2.0",
+    "electron-builder": "^26.0.12",
+    "supertest": "^7.1.4"
+  },
+  "build": {
+    "appId": "cn.family.nas.lite",
+    "productName": "家庭 NAS",
+    "artifactName": "家庭NAS-Setup-${version}.${ext}",
+    "asar": true,
+    "asarUnpack": [
+      "node_modules/xlsx/**/*"
+    ],
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "electron/**/*",
+      "server/**/*",
+      "shared/**/*",
+      "public/**/*",
+      "package.json",
+      "!**/*.map",
+      "!tests/**/*",
+      "!docs/**/*"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "家庭 NAS",
+      "include": "build/installer.nsh",
+      "deleteAppDataOnUninstall": false,
+      "runAfterFinish": true
+    }
+  }
+}
+

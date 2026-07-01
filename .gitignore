@@ -1,0 +1,12 @@
+node_modules/
+.npm-cache/
+dist/
+release/
+coverage/
+*.log
+.env
+.DS_Store
+Thumbs.db
+desktop.ini
+public/vendor/*
+!public/vendor/.gitkeep

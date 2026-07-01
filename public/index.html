@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#0f6cbd">
+  <title>家庭 NAS</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body class="app-page">
+  <div id="app" class="app-shell" aria-busy="true">
+    <aside id="sidebar" class="sidebar" aria-label="主导航">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></div>
+        <div>
+          <strong>家庭 NAS</strong>
+          <span>局域网文件中心</span>
+        </div>
+      </div>
+      <nav class="nav-list">
+        <button class="nav-item is-active" type="button" data-view="files">
+          <span class="nav-icon" aria-hidden="true">▤</span><span>文件</span>
+        </button>
+        <button class="nav-item" type="button" data-view="recent">
+          <span class="nav-icon" aria-hidden="true">◷</span><span>最近上传</span>
+        </button>
+        <button class="nav-item" type="button" data-view="recycle">
+          <span class="nav-icon" aria-hidden="true">♲</span><span>回收站</span>
+        </button>
+        <button class="nav-item" type="button" data-view="settings">
+          <span class="nav-icon" aria-hidden="true">⚙</span><span>设置</span>
+        </button>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="connection-state"><span class="status-dot"></span><span>家庭网络已连接</span></div>
+        <button id="logout-button" class="nav-item logout-button" type="button">
+          <span class="nav-icon" aria-hidden="true">↪</span><span>退出登录</span>
+        </button>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <button id="menu-button" class="icon-button menu-button" type="button" aria-label="打开导航" aria-controls="sidebar" aria-expanded="false">☰</button>
+        <div class="mobile-title">家庭 NAS</div>
+        <form id="search-form" class="search-box" role="search">
+          <span aria-hidden="true">⌕</span>
+          <input id="search-input" type="search" placeholder="搜索当前文件夹" autocomplete="off" aria-label="搜索文件">
+          <button id="clear-search" class="search-clear" type="button" aria-label="清除搜索" hidden>×</button>
+        </form>
+        <button id="refresh-button" class="icon-button" type="button" aria-label="刷新">↻</button>
+      </header>
+
+      <section id="browser-view" class="content-view">
+        <div class="page-heading">
+          <div>
+            <div id="breadcrumbs" class="breadcrumbs" aria-label="当前位置"></div>
+            <h1 id="page-title">文件</h1>
+          </div>
+          <div class="heading-actions">
+            <button id="new-folder-button" class="button" type="button"><span aria-hidden="true">＋</span> 新建文件夹</button>
+            <button id="upload-button" class="button button-primary" type="button"><span aria-hidden="true">⇧</span> 上传</button>
+            <input id="file-input" type="file" multiple hidden>
+          </div>
+        </div>
+
+        <div id="selection-bar" class="selection-bar" hidden>
+          <span><strong id="selection-count">0</strong> 项已选择</span>
+          <div class="selection-actions">
+            <button type="button" data-selection-action="download">下载</button>
+            <button type="button" data-selection-action="move">移动</button>
+            <button type="button" data-selection-action="delete" class="danger-text">删除</button>
+            <button type="button" data-selection-action="clear">取消选择</button>
+          </div>
+        </div>
+
+        <div class="content-toolbar">
+          <div id="result-summary" class="result-summary">正在载入…</div>
+          <div class="toolbar-controls">
+            <label class="compact-select">
+              <span>排序</span>
+              <select id="sort-select" aria-label="排序方式">
+                <option value="name:asc">名称 A–Z</option>
+                <option value="name:desc">名称 Z–A</option>
+                <option value="modified:desc">修改时间：最新</option>
+                <option value="modified:asc">修改时间：最早</option>
+                <option value="size:desc">大小：最大</option>
+                <option value="size:asc">大小：最小</option>
+              </select>
+            </label>
+            <div class="view-switch" role="group" aria-label="显示方式">
+              <button id="list-view-button" class="icon-button is-active" type="button" aria-label="列表视图" aria-pressed="true">☷</button>
+              <button id="grid-view-button" class="icon-button" type="button" aria-label="缩略图视图" aria-pressed="false">▦</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="drop-zone" class="drop-zone">
+          <div id="loading-state" class="state-panel">
+            <span class="large-spinner" aria-hidden="true"></span>
+            <p>正在读取文件…</p>
+          </div>
+          <div id="empty-state" class="state-panel" hidden>
+            <div class="state-icon" aria-hidden="true">▱</div>
+            <h2>这里还没有文件</h2>
+            <p>上传文件，或新建一个文件夹开始整理。</p>
+            <button class="button button-primary" type="button" data-empty-action="upload">上传文件</button>
+          </div>
+          <div id="error-state" class="state-panel" hidden>
+            <div class="state-icon error-icon" aria-hidden="true">!</div>
+            <h2>无法读取内容</h2>
+            <p id="error-state-message">请稍后重试。</p>
+            <button class="button" type="button" data-empty-action="retry">重试</button>
+          </div>
+          <div id="file-table-wrap" class="file-table-wrap" hidden>
+            <table class="file-table">
+              <thead>
+                <tr>
+                  <th class="select-column"><input id="select-all" type="checkbox" aria-label="全选"></th>
+                  <th>名称</th><th>修改时间</th><th>类型</th><th>大小</th><th class="actions-column">操作</th>
+                </tr>
+              </thead>
+              <tbody id="file-table-body"></tbody>
+            </table>
+          </div>
+          <div id="file-grid" class="file-grid" hidden></div>
+          <div id="drop-overlay" class="drop-overlay" hidden>
+            <strong>松开以上传到当前文件夹</strong>
+            <span>可同时上传多个文件</span>
+          </div>
+        </div>
+      </section>
+
+      <section id="settings-view" class="content-view settings-view" hidden>
+        <div class="page-heading">
+          <div><p class="eyebrow">设备状态</p><h1>设置</h1></div>
+        </div>
+        <div id="status-loading" class="settings-card">正在读取服务器状态…</div>
+        <div id="status-content" hidden>
+          <section class="settings-card">
+            <div class="settings-card-title"><div><h2>家庭 NAS 状态</h2><p>仅可从家庭局域网访问</p></div><span class="status-badge"><i></i>运行中</span></div>
+            <dl class="status-grid">
+              <div><dt>共享目录</dt><dd id="status-root">—</dd></div>
+              <div><dt>服务端口</dt><dd id="status-port">—</dd></div>
+              <div><dt>局域网地址</dt><dd id="status-addresses">—</dd></div>
+              <div><dt>应用版本</dt><dd id="status-version">—</dd></div>
+            </dl>
+          </section>
+          <section class="settings-card">
+            <h2>磁盘空间</h2>
+            <div class="storage-summary"><strong id="storage-used">—</strong><span id="storage-total">—</span></div>
+            <div class="storage-bar" role="progressbar" aria-label="磁盘空间使用情况"><span id="storage-bar-fill"></span></div>
+            <p id="storage-free" class="muted-text">—</p>
+          </section>
+          <section id="firewall-card" class="settings-card notice-card" hidden>
+            <div class="notice-icon" aria-hidden="true">!</div>
+            <div><h2>Windows 防火墙提示</h2><p id="firewall-message"></p></div>
+          </section>
+          <section class="settings-card">
+            <h2>当前会话</h2>
+            <p class="muted-text">退出后需要重新输入家庭访问码。</p>
+            <button id="settings-logout-button" class="button" type="button">退出登录</button>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <nav class="bottom-nav" aria-label="移动端主导航">
+      <button class="bottom-nav-item is-active" type="button" data-view="files"><span aria-hidden="true">▤</span><span>文件</span></button>
+      <button class="bottom-nav-item" type="button" data-view="recent"><span aria-hidden="true">◷</span><span>最近</span></button>
+      <button class="bottom-nav-item" type="button" data-view="recycle"><span aria-hidden="true">♲</span><span>回收站</span></button>
+      <button class="bottom-nav-item" type="button" data-view="settings"><span aria-hidden="true">⚙</span><span>设置</span></button>
+    </nav>
+    <div id="sidebar-backdrop" class="sidebar-backdrop" hidden></div>
+  </div>
+
+  <section id="upload-panel" class="upload-panel" aria-label="上传进度" hidden>
+    <div class="upload-panel-header">
+      <div><strong id="upload-title">正在上传</strong><span id="upload-summary"></span></div>
+      <button id="upload-panel-close" class="icon-button" type="button" aria-label="收起上传面板">×</button>
+    </div>
+    <div id="upload-items" class="upload-items"></div>
+  </section>
+
+  <dialog id="form-dialog" class="modal form-modal">
+    <form id="dialog-form" method="dialog">
+      <div class="modal-header"><div><p id="dialog-eyebrow" class="eyebrow"></p><h2 id="dialog-title"></h2></div><button class="icon-button modal-close" type="button" data-dialog-close aria-label="关闭">×</button></div>
+      <div id="dialog-description" class="modal-description"></div>
+      <div id="dialog-fields" class="dialog-fields"></div>
+      <p id="dialog-error" class="form-message error-message" role="alert"></p>
+      <div class="modal-actions"><button class="button" type="button" data-dialog-close>取消</button><button id="dialog-submit" class="button button-primary" type="submit">确定</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="preview-dialog" class="modal preview-modal">
+    <div class="preview-shell">
+      <header class="preview-header">
+        <div><h2 id="preview-title">文件预览</h2><p id="preview-meta"></p></div>
+        <div class="preview-actions"><button id="preview-download" class="button" type="button">下载</button><button class="icon-button" type="button" data-preview-close aria-label="关闭预览">×</button></div>
+      </header>
+      <div id="preview-body" class="preview-body"></div>
+    </div>
+  </dialog>
+
+  <div id="context-menu" class="context-menu" role="menu" hidden>
+    <button type="button" role="menuitem" data-item-action="open">打开</button>
+    <button type="button" role="menuitem" data-item-action="download">下载</button>
+    <button type="button" role="menuitem" data-item-action="rename">重命名</button>
+    <button type="button" role="menuitem" data-item-action="move">移动</button>
+    <button type="button" role="menuitem" data-item-action="delete" class="danger-text">删除</button>
+  </div>
+
+  <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
+
+  <script src="./api.js" defer></script>
+  <script src="./app.js" defer></script>
+</body>
+</html>

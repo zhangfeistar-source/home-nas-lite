@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; script-src 'self'; img-src 'self' data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>家庭 NAS 首次设置</title>
+  <link rel="stylesheet" href="./wizard.css">
+</head>
+<body>
+  <main class="shell">
+    <section class="intro" aria-labelledby="title">
+      <div class="brand-mark" aria-hidden="true">NAS</div>
+      <p class="eyebrow">家庭 NAS Lite</p>
+      <h1 id="title">欢迎使用家庭 NAS</h1>
+      <p class="summary">选择一个本机文件夹，让同一家庭网络中的设备安全访问。不会使用云端服务，也不会把共享目录暴露到公网。</p>
+      <ol class="steps" aria-label="设置步骤">
+        <li class="active">选择共享目录</li>
+        <li>设置访问凭据</li>
+        <li>启动家庭服务</li>
+      </ol>
+      <div class="privacy-note">
+        <strong>数据留在这台电脑</strong>
+        <span>配置保存在 %APPDATA%\家庭NAS，共享文件只保存在你选择的目录。</span>
+      </div>
+    </section>
+
+    <section class="panel" aria-label="首次启动设置">
+      <div id="recoveryNotice" class="notice warning hidden" role="status"></div>
+      <form id="setupForm" novalidate>
+        <fieldset>
+          <legend>1. 共享目录</legend>
+          <p class="field-help">请选择专用文件夹。不能选择整个磁盘、系统目录、网络路径、符号链接或应用数据的上级目录。</p>
+          <div class="directory-row">
+            <output id="sharePath" class="path-box">尚未选择文件夹</output>
+            <button id="chooseDirectory" class="secondary" type="button">选择文件夹</button>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>2. 登录与管理</legend>
+          <label for="accessCode">家庭访问码</label>
+          <input id="accessCode" name="accessCode" type="password" minlength="6" maxlength="64" autocomplete="new-password" required>
+          <p class="field-help">家人通过浏览器登录时使用，至少 6 个字符。</p>
+
+          <label for="accessCodeConfirm">再次输入家庭访问码</label>
+          <input id="accessCodeConfirm" name="accessCodeConfirm" type="password" minlength="6" maxlength="64" autocomplete="new-password" required>
+
+          <label for="adminPassword">管理员密码</label>
+          <input id="adminPassword" name="adminPassword" type="password" minlength="6" maxlength="128" autocomplete="new-password" required>
+          <p class="field-help">永久删除、清空回收站和修改敏感设置时使用，至少 6 个字符，且不能与访问码相同。</p>
+
+          <label for="adminPasswordConfirm">再次输入管理员密码</label>
+          <input id="adminPasswordConfirm" name="adminPasswordConfirm" type="password" minlength="6" maxlength="128" autocomplete="new-password" required>
+        </fieldset>
+
+        <fieldset>
+          <legend>3. 家庭网络访问</legend>
+          <label class="check-row" for="configureFirewall">
+            <input id="configureFirewall" name="configureFirewall" type="checkbox" checked>
+            <span>
+              <strong>允许同一家庭网络访问</strong>
+              <small>启动后会请求一次 Windows 管理员授权，只放行实际 TCP 端口，并把远端地址限制为 LocalSubnet。</small>
+            </span>
+          </label>
+          <p class="field-help">请勿在路由器上配置端口映射或把本软件暴露到公网。</p>
+        </fieldset>
+
+        <div id="status" class="notice hidden" role="alert" aria-live="polite"></div>
+        <button id="submitButton" class="primary" type="submit">完成设置并启动</button>
+      </form>
+    </section>
+  </main>
+  <script src="./wizard.js"></script>
+</body>
+</html>

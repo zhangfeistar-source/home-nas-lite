@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#0f6cbd">
+  <title>登录 - 家庭 NAS</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body class="login-page">
+  <main class="login-shell">
+    <section class="login-card" aria-labelledby="login-title">
+      <div class="brand-mark brand-mark-large" aria-hidden="true">
+        <span></span><span></span><span></span>
+      </div>
+      <p class="eyebrow">家庭局域网文件中心</p>
+      <h1 id="login-title">家庭 NAS</h1>
+      <p class="login-intro">连接家里的共享文件，安全地浏览、上传和下载。</p>
+      <form id="login-form" class="login-form" novalidate>
+        <label for="access-code">家庭访问码</label>
+        <div class="password-field">
+          <input id="access-code" name="accessCode" type="password" autocomplete="current-password" inputmode="text" required autofocus aria-describedby="login-error">
+          <button id="toggle-code" class="icon-button password-toggle" type="button" aria-label="显示访问码" aria-pressed="false">
+            <span aria-hidden="true">查看</span>
+          </button>
+        </div>
+        <p id="login-error" class="form-message error-message" role="alert" aria-live="polite"></p>
+        <button id="login-button" class="button button-primary button-block" type="submit">
+          <span class="button-label">进入家庭 NAS</span>
+          <span class="button-spinner" aria-hidden="true"></span>
+        </button>
+      </form>
+      <p class="login-help">请确保设备已连接到家庭 Wi-Fi。访问码由管理员设置。</p>
+    </section>
+  </main>
+  <script src="./api.js" defer></script>
+  <script src="./login.js" defer></script>
+</body>
+</html>
