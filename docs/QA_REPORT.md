@@ -90,4 +90,7 @@
 - `npm test`：13 通过，0 失败。
 - `npm run copy-vendor`：通过，Mammoth 与 XLSX 浏览器资产已复制。
 - `npm run verify`：通过。
-- Windows 安装包构建与卸载结果由主代理在最终交付记录补充。
+- `npm run dist`：通过，生成 `dist/家庭NAS-Setup-1.0.0.exe`（96,423,530 字节）。
+- 安装包 SHA-256：`4C69A6FC7A3BE393BA5EA872D103BFFA939692A394E2B9B5B925EA37D385FD77`。
+- ASAR 内容检查：未包含 `tests/`、`docs/`、真实共享文件、回收站索引或最近文件索引。
+- 尚未在第二台 Windows 电脑上执行安装、UAC 防火墙授权和真实卸载交互。
