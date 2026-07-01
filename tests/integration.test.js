@@ -451,15 +451,16 @@ if (!fs.existsSync(appPath) || missingDependency) {
   test('媒体单段 Range 返回 206，无效或多段 Range 返回 416', async () => {
     await withFixture(async (fixture) => {
       await authenticate(fixture);
-      await fsp.writeFile(path.join(fixture.shareRoot, 'range.bin'), Buffer.from('0123456789'));
+      await fsp.writeFile(path.join(fixture.shareRoot, 'range.flv'), Buffer.from('0123456789'));
 
       const partial = await fixture.agent
         .get('/api/files/stream')
-        .query({ path: 'range.bin' })
+        .query({ path: 'range.flv' })
         .set('Range', 'bytes=2-5')
         .buffer(true)
         .parse(binaryParser);
       assert.equal(partial.status, 206);
+      assert.match(partial.headers['content-type'] || '', /^video\/x-flv\b/i);
       assert.equal(partial.headers['content-range'], 'bytes 2-5/10');
       assert.equal(partial.headers['accept-ranges'], 'bytes');
       assert.equal(Number(partial.headers['content-length']), 4);
@@ -468,7 +469,7 @@ if (!fs.existsSync(appPath) || missingDependency) {
       for (const range of ['bytes=100-200', 'bytes=0-1,4-5']) {
         const invalid = await fixture.agent
           .get('/api/files/stream')
-          .query({ path: 'range.bin' })
+          .query({ path: 'range.flv' })
           .set('Range', range);
         assert.match(
           invalid.headers['content-type'] || '',

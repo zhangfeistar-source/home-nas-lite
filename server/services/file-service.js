@@ -15,6 +15,7 @@ const MIME_TYPES = new Map([
   ['.bmp', 'image/bmp'],
   ['.csv', 'text/csv; charset=utf-8'],
   ['.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+  ['.flv', 'video/x-flv'],
   ['.gif', 'image/gif'],
   ['.heic', 'image/heic'],
   ['.jpeg', 'image/jpeg'],

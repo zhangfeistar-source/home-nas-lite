@@ -134,6 +134,7 @@ function verifyOfflineAssets() {
   for (const relativePath of [
     'public/vendor/mammoth.browser.min.js',
     'public/vendor/xlsx.full.min.js',
+    'public/vendor/flv.min.js',
   ]) {
     requireFile(relativePath);
   }

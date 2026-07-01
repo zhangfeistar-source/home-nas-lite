@@ -82,6 +82,7 @@
     requestId: 0,
     contextItem: null,
     previewItem: null,
+    flvPlayer: null,
     dialogResolve: null,
     uploads: new Map(),
     searchTimer: null,
@@ -131,7 +132,7 @@
     const mime = String(mimeValue || "").toLowerCase();
     const extension = extensionOf(name);
     if (mime.startsWith("image/") || ["jpg", "jpeg", "png", "gif", "webp", "bmp", "svg", "avif"].includes(extension)) return "image";
-    if (mime.startsWith("video/") || ["mp4", "webm", "mov", "m4v", "ogv", "mkv", "avi", "hevc"].includes(extension)) return "video";
+    if (mime.startsWith("video/") || ["mp4", "webm", "mov", "m4v", "ogv", "mkv", "avi", "hevc", "flv"].includes(extension)) return "video";
     if (mime === "application/pdf" || extension === "pdf") return "pdf";
     if (["docx", "doc"].includes(extension)) return "document";
     if (["xlsx", "xls", "csv", "tsv"].includes(extension)) return "sheet";
@@ -1203,6 +1204,10 @@
 
   function renderVideoPreview(item, forceAttempt) {
     const extension = extensionOf(item.name);
+    if (extension === "flv") {
+      renderFlvPreview(item);
+      return;
+    }
     if (!forceAttempt && ["mkv", "avi", "hevc"].includes(extension)) {
       const message = createPreviewMessage("此视频可能无法播放", "浏览器通常不支持 MKV、AVI 或 HEVC 解码。可以尝试播放，或直接下载后使用本地播放器打开。");
       const attempt = document.createElement("button");
@@ -1231,6 +1236,41 @@
       elements.previewBody.replaceChildren(message);
     }, { once: true });
     elements.previewBody.replaceChildren(video);
+  }
+
+  function renderFlvPreview(item) {
+    if (!window.flvjs || !window.flvjs.isSupported()) {
+      renderPreviewError("当前浏览器不支持 FLV 播放所需的 Media Source Extensions，请下载后使用本地播放器打开。");
+      return;
+    }
+
+    const video = document.createElement("video");
+    video.controls = true;
+    video.autoplay = false;
+    video.playsInline = true;
+    video.preload = "metadata";
+    elements.previewBody.replaceChildren(video);
+
+    const player = window.flvjs.createPlayer({
+      type: "flv",
+      url: apiUrl("/api/files/stream", { path: item.path }),
+      isLive: false,
+      hasAudio: true,
+      hasVideo: true
+    }, {
+      enableWorker: false,
+      lazyLoad: true,
+      stashInitialSize: 384 * 1024
+    });
+    state.flvPlayer = player;
+    player.on(window.flvjs.Events.ERROR, () => {
+      if (state.flvPlayer !== player) return;
+      player.destroy();
+      state.flvPlayer = null;
+      renderPreviewError("FLV 文件无法播放。当前仅支持浏览器可解码的 H.264 视频及 AAC/MP3 音频编码，请下载后使用本地播放器打开。");
+    });
+    player.attachMediaElement(video);
+    player.load();
   }
 
   function renderPdfPreview(item) {
@@ -1419,6 +1459,10 @@
   }
 
   function cleanupPreview() {
+    if (state.flvPlayer) {
+      state.flvPlayer.destroy();
+      state.flvPlayer = null;
+    }
     const video = elements.previewBody.querySelector("video");
     if (video) {
       video.pause();

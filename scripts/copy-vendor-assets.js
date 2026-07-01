@@ -14,6 +14,10 @@ const ASSETS = Object.freeze([
     source: path.join(ROOT, 'node_modules', 'xlsx', 'dist', 'xlsx.full.min.js'),
     destination: path.join(VENDOR_DIRECTORY, 'xlsx.full.min.js'),
   },
+  {
+    source: path.join(ROOT, 'node_modules', 'flv.js', 'dist', 'flv.min.js'),
+    destination: path.join(VENDOR_DIRECTORY, 'flv.min.js'),
+  },
 ]);
 
 async function copyFileAtomically(source, destination) {

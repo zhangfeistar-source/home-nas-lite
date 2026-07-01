@@ -28,7 +28,7 @@
 | 恢复缺失父目录 | 通过 | 原父目录删除后可自动重建并恢复文件 |
 | 搜索、最近、系统状态 | 通过 | 验证搜索结果、最近记录上限和状态基本字段 |
 | ZIP 下载 | 通过 | 验证 ZIP 类型、附件头、PK 签名和所选条目 |
-| Range `206` | 通过 | 验证区间、长度、响应头和字节内容 |
+| FLV 与 Range `206` | 通过 | 验证 `video/x-flv`、区间、长度、响应头和字节内容 |
 | Range `416` | 通过 | 状态、`Content-Range` 与 `application/json` 错误响应均正确 |
 | 大文件下载 | 通过 | 8 MiB+ 文件完整返回且观察到多个数据块；代码审查确认使用 `createReadStream` |
 | 文本预览 | 通过 | 中文文本正确，2 MiB 截断边界有效 |
@@ -90,7 +90,7 @@
 - `npm test`：13 通过，0 失败。
 - `npm run copy-vendor`：通过，Mammoth 与 XLSX 浏览器资产已复制。
 - `npm run verify`：通过。
-- `npm run dist`：通过，生成 `dist/家庭NAS-Setup-1.0.0.exe`（96,423,530 字节）。
-- 安装包 SHA-256：`4C69A6FC7A3BE393BA5EA872D103BFFA939692A394E2B9B5B925EA37D385FD77`。
+- `npm run dist`：通过，生成包含本地 FLV 播放器的 `dist/家庭NAS-Setup-1.0.0.exe`（96,541,932 字节）。
+- 安装包 SHA-256：`5A2CAFEB3B089A0BA988216620F28B9734A304357DE57DE3B862543BF7D4BA6E`。
 - ASAR 内容检查：未包含 `tests/`、`docs/`、真实共享文件、回收站索引或最近文件索引。
 - 尚未在第二台 Windows 电脑上执行安装、UAC 防火墙授权和真实卸载交互。
