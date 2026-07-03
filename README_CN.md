@@ -31,7 +31,7 @@ npm run dist
 安装包输出为：
 
 ```text
-dist\家庭NAS-Setup-1.0.0.exe
+dist\家庭NAS-Setup-1.0.1.exe
 ```
 
 安装包已包含 Electron 与 Node.js 运行时，目标电脑无需预装开发工具。
@@ -49,6 +49,9 @@ dist\家庭NAS-Setup-1.0.0.exe
 - 防火墙规则只应允许 TCP 实际端口和 `LocalSubnet`。
 - 卸载应用不会删除家庭共享文件；应用配置默认也会保留。
 - FLV 使用内置 `flv.js` 本地播放，支持以 H.264 视频配合 AAC/MP3 音频编码的常见 FLV 文件。
+- PDF 使用内置 PDF.js 在页面 Canvas 中分页渲染，支持上一页、下一页及缩放，不依赖平板浏览器内置 PDF 阅读器。
+- DOCX 由服务端 Mammoth 转换为经过白名单清洗的 HTML，可阅读标题、段落、强调、列表、表格和常见内嵌图片。
+- 旧版 `.doc` 不支持直接预览，请下载后使用本地应用打开。
 - HEVC、MOV、MKV、AVI 等能否播放取决于设备浏览器的编解码能力，本软件不转码。
 
 ## 数据位置

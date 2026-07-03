@@ -47,6 +47,52 @@ if (!fs.existsSync(appPath) || missingDependency) {
     assertSuccess(response, [200]);
   }
 
+  async function createDocx(filePath) {
+    const archiver = require('archiver');
+    await new Promise((resolve, reject) => {
+      const output = fs.createWriteStream(filePath);
+      const archive = archiver('zip');
+      output.once('close', resolve);
+      output.once('error', reject);
+      archive.once('error', reject);
+      archive.pipe(output);
+      archive.append(
+        '<?xml version="1.0" encoding="UTF-8"?>'
+          + '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">'
+          + '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'
+          + '<Default Extension="xml" ContentType="application/xml"/>'
+          + '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>'
+          + '<Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>'
+          + '</Types>',
+        { name: '[Content_Types].xml' },
+      );
+      archive.append(
+        '<?xml version="1.0" encoding="UTF-8"?>'
+          + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+          + '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>'
+          + '</Relationships>',
+        { name: '_rels/.rels' },
+      );
+      archive.append(
+        '<?xml version="1.0" encoding="UTF-8"?>'
+          + '<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+          + '<w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/></w:style>'
+          + '</w:styles>',
+        { name: 'word/styles.xml' },
+      );
+      archive.append(
+        '<?xml version="1.0" encoding="UTF-8"?>'
+          + '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+          + '<w:body>'
+          + '<w:p><w:pPr><w:pStyle w:val="Title"/></w:pPr><w:r><w:t>家庭文档标题</w:t></w:r></w:p>'
+          + '<w:p><w:r><w:rPr><w:b/></w:rPr><w:t>重点内容</w:t></w:r></w:p>'
+          + '<w:sectPr/></w:body></w:document>',
+        { name: 'word/document.xml' },
+      );
+      archive.finalize().catch(reject);
+    });
+  }
+
   async function list(fixture, relativePath = '') {
     const response = await fixture.agent.get('/api/files/list').query({ path: relativePath });
     assertSuccess(response, [200]);
@@ -522,7 +568,7 @@ if (!fs.existsSync(appPath) || missingDependency) {
     });
   });
 
-  test('文本与工作簿预览接口正确且执行大小边界', async () => {
+  test('文本、DOCX 与工作簿预览正确且执行大小边界', async () => {
     await withFixture(async (fixture) => {
       await authenticate(fixture);
       const text = '第一行\n第二行：# & +\n';
@@ -547,6 +593,16 @@ if (!fs.existsSync(appPath) || missingDependency) {
         Buffer.byteLength(largeTextResponse.body.content, 'utf8') <= 2 * 1024 * 1024,
         '文本预览不得读取超过 2MiB',
       );
+
+      await createDocx(path.join(fixture.shareRoot, '家庭文档.docx'));
+      const docxResponse = await fixture.agent
+        .get('/api/files/meta')
+        .query({ path: '家庭文档.docx' });
+      assertSuccess(docxResponse, [200]);
+      assert.equal(docxResponse.body.preview.type, 'docx');
+      assert.match(docxResponse.body.preview.html, /<h1>家庭文档标题<\/h1>/);
+      assert.match(docxResponse.body.preview.html, /<strong>重点内容<\/strong>/);
+      assert.equal(docxResponse.body.preview.text, undefined, 'DOCX 应返回 HTML 而非纯文本');
 
       const XLSX = require('xlsx');
       const rows = Array.from({ length: 505 }, (_, rowIndex) =>

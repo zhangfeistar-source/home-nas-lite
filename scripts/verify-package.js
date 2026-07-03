@@ -135,9 +135,31 @@ function verifyOfflineAssets() {
     'public/vendor/mammoth.browser.min.js',
     'public/vendor/xlsx.full.min.js',
     'public/vendor/flv.min.js',
+    'public/vendor/pdfjs/pdf.min.mjs',
+    'public/vendor/pdfjs/pdf.worker.min.mjs',
+    'public/vendor/pdfjs/cmaps/Adobe-CNS1-UCS2.bcmap',
+    'public/vendor/pdfjs/standard_fonts/LiberationSans-Regular.ttf',
+    'public/vendor/pdfjs/wasm/openjpeg.wasm',
   ]) {
     requireFile(relativePath);
   }
+
+  const appSource = readText('public/app.js');
+  requirePattern(
+    appSource,
+    /import\("\.\/vendor\/pdfjs\/pdf\.min\.mjs"\)/,
+    '前端必须从本地加载 PDF.js。',
+  );
+  requirePattern(
+    appSource,
+    /pdfjs\.getDocument\(/,
+    '前端必须使用 PDF.js 渲染 PDF。',
+  );
+  requirePattern(
+    appSource,
+    /mammoth|preview\.html|sanitizePreviewHtml/,
+    '前端必须支持经过清洗的 Word HTML 预览。',
+  );
 
   const scanRoots = ['electron', 'public'];
   const externalAssetPattern = /<(?:script|link|img)\b[^>]*(?:src|href)=["']https?:\/\//i;

@@ -90,7 +90,10 @@
 - `npm test`：13 通过，0 失败。
 - `npm run copy-vendor`：通过，Mammoth 与 XLSX 浏览器资产已复制。
 - `npm run verify`：通过。
-- `npm run dist`：通过，生成包含本地 FLV 播放器的 `dist/家庭NAS-Setup-1.0.0.exe`（96,541,932 字节）。
-- 安装包 SHA-256：`5A2CAFEB3B089A0BA988216620F28B9734A304357DE57DE3B862543BF7D4BA6E`。
+- PDF 平板预览：已替换浏览器 `<iframe>`，使用本地 PDF.js Canvas 分页、缩放和旋转屏幕自适应渲染。
+- DOCX 预览：测试验证 Mammoth 输出 HTML，标题与粗体格式保留；前端使用标签与图片来源白名单清洗。
+- `npm run dist`：通过，生成包含本地 PDF.js、增强 DOCX 与 FLV 播放器的 `dist/家庭NAS-Setup-1.0.1.exe`（98,224,127 字节）。
+- 安装包 SHA-256：`668350A8DE282B7B96FD4FC841D4C2146E6E0B92EEC4EC7812504A2A855D727E`。
+- ASAR 检查：PDF.js 主模块、Worker、CMap、标准字体和 WASM 解码资源完整，未重复打入整个 `pdfjs-dist` 源包。
 - ASAR 内容检查：未包含 `tests/`、`docs/`、真实共享文件、回收站索引或最近文件索引。
 - 尚未在第二台 Windows 电脑上执行安装、UAC 防火墙授权和真实卸载交互。

@@ -18,7 +18,24 @@ const ASSETS = Object.freeze([
     source: path.join(ROOT, 'node_modules', 'flv.js', 'dist', 'flv.min.js'),
     destination: path.join(VENDOR_DIRECTORY, 'flv.min.js'),
   },
+  {
+    source: path.join(ROOT, 'node_modules', 'pdfjs-dist', 'legacy', 'build', 'pdf.min.mjs'),
+    destination: path.join(VENDOR_DIRECTORY, 'pdfjs', 'pdf.min.mjs'),
+  },
+  {
+    source: path.join(ROOT, 'node_modules', 'pdfjs-dist', 'legacy', 'build', 'pdf.worker.min.mjs'),
+    destination: path.join(VENDOR_DIRECTORY, 'pdfjs', 'pdf.worker.min.mjs'),
+  },
 ]);
+const DIRECTORIES = Object.freeze([
+  'cmaps',
+  'iccs',
+  'standard_fonts',
+  'wasm',
+].map((name) => ({
+  source: path.join(ROOT, 'node_modules', 'pdfjs-dist', name),
+  destination: path.join(VENDOR_DIRECTORY, 'pdfjs', name),
+})));
 
 async function copyFileAtomically(source, destination) {
   const sourceStats = await fs.stat(source).catch((error) => {
@@ -32,6 +49,7 @@ async function copyFileAtomically(source, destination) {
   }
 
   const temporaryPath = `${destination}.${process.pid}.tmp`;
+  await fs.mkdir(path.dirname(destination), { recursive: true });
   await fs.copyFile(source, temporaryPath);
   try {
     await fs.rename(temporaryPath, destination);
@@ -46,11 +64,29 @@ async function copyFileAtomically(source, destination) {
   }
 }
 
+async function copyDirectory(source, destination) {
+  const sourceStats = await fs.stat(source).catch((error) => {
+    if (error.code === 'ENOENT') {
+      throw new Error(`缺少离线依赖目录：${path.relative(ROOT, source)}。请先运行 npm install。`);
+    }
+    throw error;
+  });
+  if (!sourceStats.isDirectory()) {
+    throw new Error(`离线依赖目录无效：${path.relative(ROOT, source)}`);
+  }
+  await fs.rm(destination, { recursive: true, force: true });
+  await fs.cp(source, destination, { recursive: true });
+}
+
 async function main() {
   await fs.mkdir(VENDOR_DIRECTORY, { recursive: true });
   for (const asset of ASSETS) {
     await copyFileAtomically(asset.source, asset.destination);
     console.log(`已复制 ${path.relative(ROOT, asset.destination)}`);
+  }
+  for (const directory of DIRECTORIES) {
+    await copyDirectory(directory.source, directory.destination);
+    console.log(`已复制 ${path.relative(ROOT, directory.destination)}`);
   }
 }
 

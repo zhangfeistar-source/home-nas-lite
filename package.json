@@ -1,6 +1,6 @@
 {
   "name": "home-nas-lite",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "家庭局域网文件共享与预览工具",
   "main": "electron/main.js",
   "author": "家庭 NAS Lite",
@@ -29,6 +29,7 @@
   "devDependencies": {
     "electron": "^37.2.0",
     "electron-builder": "^26.0.12",
+    "pdfjs-dist": "^6.1.200",
     "supertest": "^7.1.4"
   },
   "build": {

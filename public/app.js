@@ -83,6 +83,13 @@
     contextItem: null,
     previewItem: null,
     flvPlayer: null,
+    pdfDocument: null,
+    pdfLoadingTask: null,
+    pdfRenderTask: null,
+    pdfResizeObserver: null,
+    pdfModulePromise: null,
+    pdfPage: 1,
+    pdfZoom: 1,
     dialogResolve: null,
     uploads: new Map(),
     searchTimer: null,
@@ -1158,6 +1165,7 @@
   }
 
   async function openPreview(item) {
+    if (state.previewItem) cleanupPreview();
     state.previewItem = item;
     elements.previewTitle.textContent = item.name;
     elements.previewMeta.textContent = `${kindLabels[item.kind] || "文件"} · ${formatBytes(item.size)} · ${formatDate(item.modifiedAt)}`;
@@ -1169,7 +1177,7 @@
       } else if (item.kind === "video") {
         renderVideoPreview(item);
       } else if (item.kind === "pdf") {
-        renderPdfPreview(item);
+        await renderPdfPreview(item);
       } else if (item.kind === "text") {
         await renderTextPreview(item);
       } else if (item.kind === "document" || item.kind === "sheet") {
@@ -1273,11 +1281,155 @@
     player.load();
   }
 
-  function renderPdfPreview(item) {
-    const frame = document.createElement("iframe");
-    frame.title = `${item.name} PDF 预览`;
-    frame.src = apiUrl("/api/files/stream", { path: item.path });
-    elements.previewBody.replaceChildren(frame);
+  async function loadPdfModule() {
+    if (!state.pdfModulePromise) {
+      state.pdfModulePromise = import("./vendor/pdfjs/pdf.min.mjs").then((pdfjs) => {
+        pdfjs.GlobalWorkerOptions.workerSrc = "./vendor/pdfjs/pdf.worker.min.mjs";
+        return pdfjs;
+      });
+    }
+    return state.pdfModulePromise;
+  }
+
+  async function renderPdfPreview(item) {
+    const viewer = document.createElement("section");
+    viewer.className = "pdf-viewer";
+    viewer.setAttribute("aria-label", `${item.name} PDF 预览`);
+
+    const toolbar = document.createElement("div");
+    toolbar.className = "pdf-toolbar";
+    const previous = createPdfButton("上一页", "上一页");
+    const pageLabel = document.createElement("span");
+    pageLabel.className = "pdf-page-label";
+    const next = createPdfButton("下一页", "下一页");
+    const zoomOut = createPdfButton("缩小", "－");
+    const zoomIn = createPdfButton("放大", "＋");
+    toolbar.append(previous, pageLabel, next, zoomOut, zoomIn);
+
+    const stage = document.createElement("div");
+    stage.className = "pdf-stage";
+    const canvas = document.createElement("canvas");
+    canvas.setAttribute("aria-label", "PDF 页面");
+    stage.appendChild(canvas);
+    viewer.append(toolbar, stage);
+    elements.previewBody.replaceChildren(viewer);
+
+    let pdfjs;
+    try {
+      pdfjs = await loadPdfModule();
+    } catch {
+      renderPreviewError("PDF 渲染组件加载失败，请更新平板浏览器后重试。");
+      return;
+    }
+    if (state.previewItem !== item) return;
+    const loadingTask = pdfjs.getDocument({
+      url: apiUrl("/api/files/stream", { path: item.path }),
+      cMapUrl: "./vendor/pdfjs/cmaps/",
+      cMapPacked: true,
+      iccUrl: "./vendor/pdfjs/iccs/",
+      standardFontDataUrl: "./vendor/pdfjs/standard_fonts/",
+      wasmUrl: "./vendor/pdfjs/wasm/",
+      enableXfa: true,
+      isEvalSupported: false
+    });
+    state.pdfLoadingTask = loadingTask;
+
+    try {
+      const documentProxy = await loadingTask.promise;
+      if (state.previewItem !== item) {
+        await documentProxy.destroy();
+        return;
+      }
+      state.pdfDocument = documentProxy;
+      state.pdfPage = 1;
+      state.pdfZoom = 1;
+
+      const renderCurrentPage = async () => {
+        if (!state.pdfDocument || state.previewItem !== item) return;
+        if (state.pdfRenderTask) {
+          state.pdfRenderTask.cancel();
+          state.pdfRenderTask = null;
+        }
+        const page = await state.pdfDocument.getPage(state.pdfPage);
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+        const baseViewport = page.getViewport({ scale: 1 });
+        const availableWidth = Math.max(280, stage.clientWidth - 32);
+        const fitScale = Math.min(1.6, availableWidth / baseViewport.width);
+        const viewport = page.getViewport({ scale: fitScale * state.pdfZoom });
+        const outputScale = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = Math.floor(viewport.width * outputScale);
+        canvas.height = Math.floor(viewport.height * outputScale);
+        canvas.style.width = `${Math.floor(viewport.width)}px`;
+        canvas.style.height = `${Math.floor(viewport.height)}px`;
+        pageLabel.textContent = `${state.pdfPage} / ${state.pdfDocument.numPages}`;
+        previous.disabled = state.pdfPage <= 1;
+        next.disabled = state.pdfPage >= state.pdfDocument.numPages;
+        zoomOut.disabled = state.pdfZoom <= 0.6;
+        zoomIn.disabled = state.pdfZoom >= 2.4;
+        const renderTask = page.render({
+          canvas,
+          viewport,
+          transform: outputScale === 1 ? null : [outputScale, 0, 0, outputScale, 0, 0]
+        });
+        state.pdfRenderTask = renderTask;
+        try {
+          await renderTask.promise;
+        } catch (error) {
+          if (error?.name !== "RenderingCancelledException") throw error;
+        } finally {
+          if (state.pdfRenderTask === renderTask) state.pdfRenderTask = null;
+        }
+      };
+
+      previous.addEventListener("click", () => {
+        if (state.pdfPage <= 1) return;
+        state.pdfPage -= 1;
+        renderCurrentPage().catch((error) => renderPreviewError(error.message));
+      });
+      next.addEventListener("click", () => {
+        if (state.pdfPage >= state.pdfDocument.numPages) return;
+        state.pdfPage += 1;
+        renderCurrentPage().catch((error) => renderPreviewError(error.message));
+      });
+      zoomOut.addEventListener("click", () => {
+        state.pdfZoom = Math.max(0.6, Number((state.pdfZoom - 0.2).toFixed(1)));
+        renderCurrentPage().catch((error) => renderPreviewError(error.message));
+      });
+      zoomIn.addEventListener("click", () => {
+        state.pdfZoom = Math.min(2.4, Number((state.pdfZoom + 0.2).toFixed(1)));
+        renderCurrentPage().catch((error) => renderPreviewError(error.message));
+      });
+      await renderCurrentPage();
+      if ("ResizeObserver" in window) {
+        let previousWidth = stage.clientWidth;
+        let resizeTimer = null;
+        state.pdfResizeObserver = new ResizeObserver(() => {
+          const currentWidth = stage.clientWidth;
+          if (Math.abs(currentWidth - previousWidth) < 20) return;
+          previousWidth = currentWidth;
+          window.clearTimeout(resizeTimer);
+          resizeTimer = window.setTimeout(() => {
+            renderCurrentPage().catch((error) => renderPreviewError(error.message));
+          }, 120);
+        });
+        state.pdfResizeObserver.observe(stage);
+      }
+    } catch (error) {
+      if (state.previewItem !== item || error?.name === "AbortException") return;
+      const message = error?.name === "PasswordException"
+        ? "此 PDF 受密码保护，当前无法在线预览，请下载后打开。"
+        : "PDF 加载失败，文件可能已损坏或格式不受支持。";
+      renderPreviewError(message);
+    }
+  }
+
+  function createPdfButton(label, text) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "button pdf-tool-button";
+    button.setAttribute("aria-label", label);
+    button.textContent = text;
+    return button;
   }
 
   async function renderTextPreview(item) {
@@ -1305,6 +1457,12 @@
     }
     const documentView = document.createElement("div");
     documentView.className = "preview-document";
+    if (extensionOf(item.name) === "docx") {
+      const notice = document.createElement("p");
+      notice.className = "document-preview-notice";
+      notice.textContent = "在线预览用于阅读，复杂排版可能与原始 Word 文件略有差异。";
+      documentView.appendChild(notice);
+    }
     appendStructuredPreview(documentView, preview, item.kind);
     elements.previewBody.replaceChildren(documentView);
   }
@@ -1395,7 +1553,7 @@
   function sanitizePreviewHtml(html) {
     const parsed = new DOMParser().parseFromString(html, "text/html");
     const fragment = document.createDocumentFragment();
-    const allowed = new Set(["P", "BR", "DIV", "SPAN", "STRONG", "B", "EM", "I", "U", "S", "H1", "H2", "H3", "H4", "H5", "H6", "UL", "OL", "LI", "TABLE", "THEAD", "TBODY", "TR", "TH", "TD", "BLOCKQUOTE", "PRE", "CODE"]);
+    const allowed = new Set(["P", "BR", "DIV", "SPAN", "STRONG", "B", "EM", "I", "U", "S", "H1", "H2", "H3", "H4", "H5", "H6", "UL", "OL", "LI", "TABLE", "THEAD", "TBODY", "TR", "TH", "TD", "BLOCKQUOTE", "PRE", "CODE", "IMG"]);
 
     function cloneSafe(node) {
       if (node.nodeType === Node.TEXT_NODE) return document.createTextNode(node.textContent || "");
@@ -1410,6 +1568,13 @@
           const value = Number(node.getAttribute(attribute));
           if (Number.isInteger(value) && value > 1 && value <= 100) clone.setAttribute(attribute, String(value));
         });
+      }
+      if (node.tagName === "IMG") {
+        const source = node.getAttribute("src") || "";
+        if (/^data:image\/(?:png|jpeg|gif|webp);base64,[a-z0-9+/=\s]+$/i.test(source)) {
+          clone.setAttribute("src", source);
+          clone.setAttribute("alt", node.getAttribute("alt") || "Word 文档图片");
+        }
       }
       Array.from(node.childNodes).forEach((child) => clone.appendChild(cloneSafe(child)));
       return clone;
@@ -1459,6 +1624,23 @@
   }
 
   function cleanupPreview() {
+    if (state.pdfResizeObserver) {
+      state.pdfResizeObserver.disconnect();
+      state.pdfResizeObserver = null;
+    }
+    if (state.pdfRenderTask) {
+      state.pdfRenderTask.cancel();
+      state.pdfRenderTask = null;
+    }
+    if (state.pdfLoadingTask) {
+      state.pdfLoadingTask.destroy();
+      state.pdfLoadingTask = null;
+    } else if (state.pdfDocument) {
+      state.pdfDocument.destroy();
+    }
+    state.pdfDocument = null;
+    state.pdfPage = 1;
+    state.pdfZoom = 1;
     if (state.flvPlayer) {
       state.flvPlayer.destroy();
       state.flvPlayer = null;

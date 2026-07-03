@@ -421,10 +421,17 @@ class FileService {
     }
     if (extension === '.docx') {
       const mammoth = require('mammoth');
-      const result = await mammoth.extractRawText({ path: file.path });
+      const result = await mammoth.convertToHtml({ path: file.path }, {
+        externalFileAccess: false,
+        includeEmbeddedStyleMap: false,
+        styleMap: [
+          "p[style-name='Title'] => h1:fresh",
+          "p[style-name='Subtitle'] => h2:fresh"
+        ]
+      });
       metadata.preview = {
         type: 'docx',
-        text: result.value.slice(0, MAX_PREVIEW_CHARACTERS),
+        html: result.value.slice(0, MAX_PREVIEW_CHARACTERS),
         truncated: result.value.length > MAX_PREVIEW_CHARACTERS,
         messages: result.messages.map((message) => message.message).slice(0, 20)
       };
